@@ -16,8 +16,30 @@ type Board struct {
 }
 
 func (_ Euler) P96Sudoku() {
+  unsolved := make(chan Board, 50)
+  solved := make(chan Board, 50)
+  go readBoards(unsolved)
+  go solveBoards(unsolved, solved)
+  b := <-solved
+  fmt.Println(b)
+}
+
+func solveBoards(in, out chan Board) {
+  defer close(out)
+  for b := range in {
+    for i, row := range b.cells {
+      for j := range row {
+        b.cells[i][j] = 9
+      }
+    }
+    out <- b
+  }
+}
+
+func readBoards(out chan Board) {
+  defer close(out)
+
   data_path := data_path("96-sudoku.txt")
-  fmt.Println(data_path)
   f, err := os.Open(data_path)
   if err != nil {
     fmt.Println("Couldn't read data file!")
@@ -25,7 +47,6 @@ func (_ Euler) P96Sudoku() {
   }
 
   lines := bufio.NewScanner(f)
-  boards := make([]Board, 0, 50)
   for lines.Scan() {
     b := Board{title: lines.Text()}
     for row := 0; row < 9; row++ {
@@ -35,11 +56,10 @@ func (_ Euler) P96Sudoku() {
         b.cells[row][col] = int(char - '0')
       }
     }
-    boards = append(boards, b)
+    out <- b
   }
-
-  fmt.Println(boards[0])
 }
+
 
 func (b Board) String() string {
   var result strings.Builder
