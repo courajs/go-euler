@@ -21,32 +21,61 @@ type Cell struct {
   board *Solver
 }
 
+type cellHandler func(row, col int, cell *Cell)
+func (s *Solver) eachCell(f cellHandler) {
+  for row := range s.cells {
+    for col := range s.cells[row] {
+      f(row, col, &s.cells[row][col])
+    }
+  }
+}
+
 func MakeSolver(board *StaticBoard) Solver {
-  return Solver{title: board.title}
+  result := Solver{title: board.title}
+  result.eachCell(func(row, col int, cell *Cell) {
+    cell.board = &result
+    cell.row = row
+    cell.col = col
+    cell.value = board.cells[row][col]
+    if cell.value == 0 {
+      cell.possibilities = []int{1,2,3,4,5,6,7,8,9}
+    }
+  })
+
+  return result
 }
 
 func (s *Solver) ToBoard() StaticBoard {
-  return StaticBoard{title: s.title}
+  result := StaticBoard{title: s.title}
+
+  s.eachCell(func(row, col int, cell *Cell) {
+    result.cells[row][col] = cell.value
+  })
+  return result
 }
 
 
 
 func (_ Euler) P96Sudoku() {
-  unsolved := make(chan StaticBoard, 50)
-  solved := make(chan StaticBoard, 50)
+  unsolved := make(chan StaticBoard) //, 50)
+  // solved := make(chan StaticBoard, 50)
   go readBoards(unsolved)
-  go solveBoards(unsolved, solved)
-  b := <-solved
+  // go solveBoards(unsolved, solved)
+  b := solveBoard(<-unsolved)
   fmt.Println(b)
 }
 
 func solveBoards(in, out chan StaticBoard) {
   defer close(out)
   for b := range in {
-    solver := MakeSolver(&b)
-    b = solver.ToBoard()
-    out <- b
+    out <- solveBoard(b)
   }
+}
+
+func solveBoard(in StaticBoard) StaticBoard {
+  solver:= MakeSolver(&in)
+  fmt.Println(solver.cells[0][0].board.cells[0][2].value)
+  return solver.ToBoard()
 }
 
 func readBoards(out chan StaticBoard) {
