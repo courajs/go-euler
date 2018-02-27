@@ -1,7 +1,7 @@
 package main
 
 import (
-  "fmt"
+  . "fmt"
   "os"
   "bufio"
   "strings"
@@ -21,7 +21,57 @@ type Cell struct {
   board *Solver
 }
 
+func (c *Cell) solved() bool {
+  return c.value != 0
+}
+
+func (c *Cell) String() string {
+  if c.solved() {
+    return Sprintf("(%d,%d:%d)", c.row, c.col, c.value)
+  } else {
+    return Sprintf("(%d,%d:%v)", c.row, c.col, c.possibilities)
+  }
+}
+
+func solveBoard(in StaticBoard) StaticBoard {
+  solver:= MakeSolver(&in)
+  Println(solver.cells[0][0].Square())
+  return solver.ToBoard()
+}
+
+func (c *Cell) Row() [9]*Cell {
+  result := [9]*Cell{}
+  for i := range result {
+    result[i] = &c.board.cells[c.row][i]
+  }
+  return result
+}
+func (c *Cell) Col() [9]*Cell {
+  result := [9]*Cell{}
+  for i := range result {
+    result[i] = &c.board.cells[i][c.col]
+  }
+  return result
+}
+func (c *Cell) Square() [9]*Cell {
+  result := [9]*Cell{}
+
+  low_row := c.row / 3
+  low_col := c.col / 3
+  high_row := low_row + 3
+  high_col := low_col + 3
+
+  for i:=low_row; i < high_row; i++ {
+    for j:=low_col; j < high_col; j++ {
+      idx := i*3 + j
+      result[idx] = &c.board.cells[i][j]
+    }
+  }
+  return result
+}
+
 type cellHandler func(row, col int, cell *Cell)
+
 func (s *Solver) eachCell(f cellHandler) {
   for row := range s.cells {
     for col := range s.cells[row] {
@@ -62,7 +112,7 @@ func (_ Euler) P96Sudoku() {
   go readBoards(unsolved)
   // go solveBoards(unsolved, solved)
   b := solveBoard(<-unsolved)
-  fmt.Println(b)
+  Println(b)
 }
 
 func solveBoards(in, out chan StaticBoard) {
@@ -72,11 +122,6 @@ func solveBoards(in, out chan StaticBoard) {
   }
 }
 
-func solveBoard(in StaticBoard) StaticBoard {
-  solver:= MakeSolver(&in)
-  fmt.Println(solver.cells[0][0].board.cells[0][2].value)
-  return solver.ToBoard()
-}
 
 func readBoards(out chan StaticBoard) {
   defer close(out)
@@ -84,7 +129,7 @@ func readBoards(out chan StaticBoard) {
   data_path := data_path("96-sudoku.txt")
   f, err := os.Open(data_path)
   if err != nil {
-    fmt.Println("Couldn't read data file!")
+    Println("Couldn't read data file!")
     return
   }
 
