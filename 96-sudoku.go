@@ -5,7 +5,26 @@ import (
   "os"
   "bufio"
   "strings"
+  "sort"
 )
+
+type IntSet map[int]bool
+
+func FullSet() IntSet {
+  result := make(IntSet)
+  for i:=1;i<=9;i++ {
+    result[i]=true
+  }
+  return result
+}
+func (s IntSet) String() string {
+  result := make([]int, 0, len(s))
+  for k := range s {
+    result = append(result, k)
+  }
+  sort.Ints(result)
+  return Sprint(result)
+}
 
 type StaticBoard struct {
   title string
@@ -17,7 +36,7 @@ type Solver struct {
 }
 type Cell struct {
   row, col, value int
-  possibilities []int
+  possibilities IntSet
   board *Solver
 }
 
@@ -35,7 +54,15 @@ func (c *Cell) String() string {
 
 func solveBoard(in StaticBoard) StaticBoard {
   solver:= MakeSolver(&in)
-  Println(solver.cells[0][0].Square())
+  // apply info we have from already filled cells
+  solver.each(func(cell *Cell) {
+    for _,neighbor:=range cell.Row() { delete(neighbor.possibilities,cell.value) }
+    for _,neighbor:=range cell.Col() { delete(neighbor.possibilities,cell.value) }
+    for _,neighbor:=range cell.Square() { delete(neighbor.possibilities,cell.value) }
+  })
+  for i:=0;i<9;i++ {
+    Println(solver.cells[i][0].Row())
+  }
   return solver.ToBoard()
 }
 
@@ -61,18 +88,18 @@ func (c *Cell) Square() [9]*Cell {
   high_row := low_row + 3
   high_col := low_col + 3
 
+  idx := 0
   for i:=low_row; i < high_row; i++ {
     for j:=low_col; j < high_col; j++ {
-      idx := i*3 + j
       result[idx] = &c.board.cells[i][j]
+      idx++
     }
   }
   return result
 }
 
-type cellHandler func(row, col int, cell *Cell)
-
-func (s *Solver) eachCell(f cellHandler) {
+type posHandler func(row, col int, cell *Cell)
+func (s *Solver) eachPos(f posHandler) {
   for row := range s.cells {
     for col := range s.cells[row] {
       f(row, col, &s.cells[row][col])
@@ -80,15 +107,21 @@ func (s *Solver) eachCell(f cellHandler) {
   }
 }
 
+func (s *Solver) each(f func(*Cell)) {
+  s.eachPos(func(_,_ int, cell *Cell) {
+    f(cell)
+  })
+}
+
 func MakeSolver(board *StaticBoard) Solver {
   result := Solver{title: board.title}
-  result.eachCell(func(row, col int, cell *Cell) {
+  result.eachPos(func(row, col int, cell *Cell) {
     cell.board = &result
     cell.row = row
     cell.col = col
     cell.value = board.cells[row][col]
     if cell.value == 0 {
-      cell.possibilities = []int{1,2,3,4,5,6,7,8,9}
+      cell.possibilities = FullSet()
     }
   })
 
@@ -98,7 +131,7 @@ func MakeSolver(board *StaticBoard) Solver {
 func (s *Solver) ToBoard() StaticBoard {
   result := StaticBoard{title: s.title}
 
-  s.eachCell(func(row, col int, cell *Cell) {
+  s.eachPos(func(row, col int, cell *Cell) {
     result.cells[row][col] = cell.value
   })
   return result
@@ -106,7 +139,7 @@ func (s *Solver) ToBoard() StaticBoard {
 
 
 
-func (_ Euler) P96Sudoku() {
+func (_ Euler) P96This() {
   unsolved := make(chan StaticBoard) //, 50)
   // solved := make(chan StaticBoard, 50)
   go readBoards(unsolved)
