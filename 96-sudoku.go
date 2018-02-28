@@ -105,10 +105,10 @@ func (s *Solver) each(f func(*Cell)) {
   })
 }
 
-func MakeSolver(board *BoardState) Solver {
-  result := Solver{title: board.title}
+func MakeSolver(board *BoardState) *Solver {
+  result := &Solver{title: board.title}
   result.eachPos(func(row, col int, cell *Cell) {
-    cell.board = &result
+    cell.board = result
     cell.row = row
     cell.col = col
     cell.value = board.cells[row][col]
@@ -172,7 +172,7 @@ func solveBoard(in BoardState) BoardState {
     })
   }
 
-  Printf("hi %b %p %p\n", (&solver == solver.cells[0][0].board),&solver , solver.cells[0][0].board)
+  // Printf("hi %b %p %p\n", (&solver == solver.cells[0][0].board),&solver , solver.cells[0][0].board)
 
   for i:=0;i<9;i++ {
     Println(solver.cells[i][0].Row())
