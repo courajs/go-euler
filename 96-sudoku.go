@@ -130,15 +130,25 @@ func (s *Solver) ToBoard() BoardState {
   return result
 }
 
+func (s *Solver) solved() bool {
+  for i:=0;i<9;i++ {
+    for j:=0;j<9;j++ {
+      if !s.cells[i][j].solved() { return false }
+    }
+  }
+  return true
+}
+
 
 
 func (_ Euler) P96This() {
   unsolved := make(chan BoardState) //, 50)
-  // solved := make(chan BoardState, 50)
+  solved := make(chan BoardState, 50)
   go readBoards(unsolved)
-  // go solveBoards(unsolved, solved)
-  b := solveBoard(<-unsolved)
-  Println(b)
+  go solveBoards(unsolved, solved)
+  for b:= range solved {
+    Println(b)
+  }
 }
 
 func solveBoards(in, out chan BoardState) {
@@ -172,19 +182,14 @@ func solveBoard(in BoardState) BoardState {
     })
   }
 
-  // Printf("hi %b %p %p\n", (&solver == solver.cells[0][0].board),&solver , solver.cells[0][0].board)
-
-  for i:=0;i<9;i++ {
-    Println(solver.cells[i][0].Row())
-  }
-  for i:=0;i<9;i++ {
-    for j:=0;j<9;j++ {
-      Print(solver.cells[i][j].value)
+  if (!solver.solved()) {
+    Println("board too hard:")
+    for i:=0;i<9;i++ {
+      Println(solver.cells[i][0].Row())
     }
+    panic("ahh")
   }
-  for i:=0;i<9;i++ {
-    Println(solver.cells[i][0].Row())
-  }
+
   return solver.ToBoard()
 }
 
