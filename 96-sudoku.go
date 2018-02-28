@@ -172,6 +172,8 @@ func solveBoard(in BoardState) BoardState {
     })
   }
 
+  Printf("hi %b %p %p\n", (&solver == solver.cells[0][0].board),&solver , solver.cells[0][0].board)
+
   for i:=0;i<9;i++ {
     Println(solver.cells[i][0].Row())
   }
