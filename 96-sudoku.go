@@ -10,6 +10,16 @@ import (
 
 type IntSet map[int]bool
 
+func (set *IntSet) keys() (result []int) {
+  for k := range *set {
+      result = append(result, k)
+  }
+  return
+}
+
+func EmptySet() IntSet {
+  return make(IntSet)
+}
 func FullSet() IntSet {
   result := make(IntSet)
   for i:=1;i<=9;i++ {
@@ -26,7 +36,7 @@ func (s IntSet) String() string {
   return Sprint(result)
 }
 
-type StaticBoard struct {
+type BoardState struct {
   title string
   cells [9][9]int
 }
@@ -45,31 +55,13 @@ func (c *Cell) solved() bool {
 }
 
 func (c *Cell) String() string {
-  if c.solved() {
-    return Sprintf("(%d,%d:%d)", c.row, c.col, c.value)
-  } else {
-    return Sprintf("(%d,%d:%v)", c.row, c.col, c.possibilities)
-  }
-}
-
-func solveBoard(in StaticBoard) StaticBoard {
-  solver:= MakeSolver(&in)
-  // apply info we have from already filled cells
-  solver.each(func(cell *Cell) {
-    for _,neighbor:=range cell.Row() { delete(neighbor.possibilities,cell.value) }
-    for _,neighbor:=range cell.Col() { delete(neighbor.possibilities,cell.value) }
-    for _,neighbor:=range cell.Square() { delete(neighbor.possibilities,cell.value) }
-  })
-  for i:=0;i<9;i++ {
-    Println(solver.cells[i][0].Row())
-  }
-  return solver.ToBoard()
+  return Sprintf("(%d,%d:%d:%v)", c.row, c.col, c.value, c.possibilities)
 }
 
 func (c *Cell) Row() [9]*Cell {
   result := [9]*Cell{}
   for i := range result {
-    result[i] = &c.board.cells[c.row][i]
+    result[i] = &(c.board.cells[c.row][i])
   }
   return result
 }
@@ -80,11 +72,11 @@ func (c *Cell) Col() [9]*Cell {
   }
   return result
 }
-func (c *Cell) Square() [9]*Cell {
-  result := [9]*Cell{}
-
-  low_row := c.row / 3
-  low_col := c.col / 3
+func (c *Cell) Square() (result [9]*Cell) {
+  big_row := c.row / 3
+  big_col := c.col / 3
+  low_row := big_row * 3
+  low_col := big_col * 3
   high_row := low_row + 3
   high_col := low_col + 3
 
@@ -113,7 +105,7 @@ func (s *Solver) each(f func(*Cell)) {
   })
 }
 
-func MakeSolver(board *StaticBoard) Solver {
+func MakeSolver(board *BoardState) Solver {
   result := Solver{title: board.title}
   result.eachPos(func(row, col int, cell *Cell) {
     cell.board = &result
@@ -128,8 +120,9 @@ func MakeSolver(board *StaticBoard) Solver {
   return result
 }
 
-func (s *Solver) ToBoard() StaticBoard {
-  result := StaticBoard{title: s.title}
+
+func (s *Solver) ToBoard() BoardState {
+  result := BoardState{title: s.title}
 
   s.eachPos(func(row, col int, cell *Cell) {
     result.cells[row][col] = cell.value
@@ -140,23 +133,61 @@ func (s *Solver) ToBoard() StaticBoard {
 
 
 func (_ Euler) P96This() {
-  unsolved := make(chan StaticBoard) //, 50)
-  // solved := make(chan StaticBoard, 50)
+  unsolved := make(chan BoardState) //, 50)
+  // solved := make(chan BoardState, 50)
   go readBoards(unsolved)
   // go solveBoards(unsolved, solved)
   b := solveBoard(<-unsolved)
   Println(b)
 }
 
-func solveBoards(in, out chan StaticBoard) {
+func solveBoards(in, out chan BoardState) {
   defer close(out)
   for b := range in {
     out <- solveBoard(b)
   }
 }
 
+func (cell *Cell) pruneNeighborPossibilities() {
+  for _,neighbor:=range cell.Row() { delete(neighbor.possibilities,cell.value) }
+  for _,neighbor:=range cell.Col() { delete(neighbor.possibilities,cell.value) }
+  for _,neighbor:=range cell.Square() { delete(neighbor.possibilities,cell.value) }
+}
 
-func readBoards(out chan StaticBoard) {
+func solveBoard(in BoardState) BoardState {
+  solver:= MakeSolver(&in)
+  // prune possibilities with all the info we have from already filled cells
+  solver.each((*Cell).pruneNeighborPossibilities)
+
+  progress := true
+  for progress {
+    progress = false
+    solver.each(func(cell *Cell) {
+      if len(cell.possibilities) == 1 {
+        progress = true
+        cell.value = cell.possibilities.keys()[0]
+        cell.possibilities = EmptySet()
+        cell.pruneNeighborPossibilities()
+      }
+    })
+  }
+
+  for i:=0;i<9;i++ {
+    Println(solver.cells[i][0].Row())
+  }
+  for i:=0;i<9;i++ {
+    for j:=0;j<9;j++ {
+      Print(solver.cells[i][j].value)
+    }
+  }
+  for i:=0;i<9;i++ {
+    Println(solver.cells[i][0].Row())
+  }
+  return solver.ToBoard()
+}
+
+
+func readBoards(out chan BoardState) {
   defer close(out)
 
   data_path := data_path("96-sudoku.txt")
@@ -168,7 +199,7 @@ func readBoards(out chan StaticBoard) {
 
   lines := bufio.NewScanner(f)
   for lines.Scan() {
-    b := StaticBoard{title: lines.Text()}
+    b := BoardState{title: lines.Text()}
     for row := 0; row < 9; row++ {
       lines.Scan()
       line := lines.Text()
@@ -181,7 +212,7 @@ func readBoards(out chan StaticBoard) {
 }
 
 
-func (b StaticBoard) String() string {
+func (b BoardState) String() string {
   var result strings.Builder
   result.WriteString(b.title)
   result.WriteRune('\n')
