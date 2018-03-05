@@ -142,20 +142,22 @@ func (s *Solver) solved() bool {
 
 
 func (_ Euler) P96This() {
-  unsolved := make(chan BoardState) //, 50)
-  solved := make(chan BoardState, 50)
-  go readBoards(unsolved)
-  go solveBoards(unsolved, solved)
+  unsolved := readBoards()
+  solved := solveBoards(unsolved)
   for b:= range solved {
     Println(b)
   }
 }
 
-func solveBoards(in, out chan BoardState) {
-  defer close(out)
-  for b := range in {
-    out <- solveBoard(b)
-  }
+func solveBoards(in chan BoardState) chan BoardState {
+  out := make(chan BoardState, 50)
+  go func() {
+    defer close(out)
+    for b := range in {
+      out <- solveBoard(b)
+    }
+  }()
+  return out
 }
 
 func (cell *Cell) pruneNeighborPossibilities() {
@@ -194,28 +196,32 @@ func solveBoard(in BoardState) BoardState {
 }
 
 
-func readBoards(out chan BoardState) {
-  defer close(out)
+func readBoards() chan BoardState {
+  out := make(chan BoardState)
+  go func() {
+    defer close(out)
 
-  data_path := data_path("96-sudoku.txt")
-  f, err := os.Open(data_path)
-  if err != nil {
-    Println("Couldn't read data file!")
-    return
-  }
-
-  lines := bufio.NewScanner(f)
-  for lines.Scan() {
-    b := BoardState{title: lines.Text()}
-    for row := 0; row < 9; row++ {
-      lines.Scan()
-      line := lines.Text()
-      for col, char := range line {
-        b.cells[row][col] = int(char - '0')
-      }
+    data_path := data_path("96-sudoku.txt")
+    f, err := os.Open(data_path)
+    if err != nil {
+      Println("Couldn't read data file!")
+      return
     }
-    out <- b
-  }
+
+    lines := bufio.NewScanner(f)
+    for lines.Scan() {
+      b := BoardState{title: lines.Text()}
+      for row := 0; row < 9; row++ {
+        lines.Scan()
+        line := lines.Text()
+        for col, char := range line {
+          b.cells[row][col] = int(char - '0')
+        }
+      }
+      out <- b
+    }
+  }()
+  return out
 }
 
 
