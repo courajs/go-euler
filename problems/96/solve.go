@@ -1,4 +1,4 @@
-package main
+package sudoku
 
 import (
   . "fmt"
@@ -6,28 +6,41 @@ import (
   "bufio"
   "strings"
   "sort"
+  "path/filepath"
 )
 
-type IntSet map[int]bool
+const ID = 96
+const Title = "Sudoku"
 
-func (set *IntSet) keys() (result []int) {
+func Solve() {
+  unsolved := readBoards()
+  solved := solveBoards(unsolved)
+  for b:= range solved {
+    Println(b)
+  }
+}
+
+
+type intSet map[int]bool
+
+func (set *intSet) keys() (result []int) {
   for k := range *set {
       result = append(result, k)
   }
   return
 }
 
-func EmptySet() IntSet {
-  return make(IntSet)
+func emptySet() intSet {
+  return make(intSet)
 }
-func FullSet() IntSet {
-  result := make(IntSet)
+func fullSet() intSet {
+  result := make(intSet)
   for i:=1;i<=9;i++ {
     result[i]=true
   }
   return result
 }
-func (s IntSet) String() string {
+func (s intSet) String() string {
   result := make([]int, 0, len(s))
   for k := range s {
     result = append(result, k)
@@ -46,7 +59,7 @@ type Solver struct {
 }
 type Cell struct {
   row, col, value int
-  possibilities IntSet
+  possibilities intSet
   board *Solver
 }
 
@@ -113,7 +126,7 @@ func MakeSolver(board *BoardState) *Solver {
     cell.col = col
     cell.value = board.cells[row][col]
     if cell.value == 0 {
-      cell.possibilities = FullSet()
+      cell.possibilities = fullSet()
     }
   })
 
@@ -140,14 +153,6 @@ func (s *Solver) solved() bool {
 }
 
 
-
-func (_ Euler) P96This() {
-  unsolved := readBoards()
-  solved := solveBoards(unsolved)
-  for b:= range solved {
-    Println(b)
-  }
-}
 
 func solveBoards(in chan BoardState) chan BoardState {
   out := make(chan BoardState, 50)
@@ -178,7 +183,7 @@ func solveBoard(in BoardState) BoardState {
       if len(cell.possibilities) == 1 {
         progress = true
         cell.value = cell.possibilities.keys()[0]
-        cell.possibilities = EmptySet()
+        cell.possibilities = emptySet()
         cell.pruneNeighborPossibilities()
       }
     })
@@ -201,7 +206,9 @@ func readBoards() chan BoardState {
   go func() {
     defer close(out)
 
-    data_path := data_path("96-sudoku.txt")
+
+    go_path := os.Getenv("GOPATH")
+    data_path := filepath.Join(go_path, "src", "github.com", "courajs", "go-euler", "problems", "96", "sudoku.txt")
     f, err := os.Open(data_path)
     if err != nil {
       Println("Couldn't read data file!")
