@@ -1,34 +1,11 @@
 package main
 
 import (
-  // "fmt"
   "text/template"
   "os"
 )
 
-
-type thing struct {
-  Imports []string
-}
-
-
-func main() {
-  dir, err := os.Open("problems")
-  if err != nil { panic(err) }
-  probs, err := dir.Readdir(0)
-  if err != nil { panic(err) }
-  nums := make([]string, len(probs))
-  for i:=range nums {
-    nums[i] = probs[i].Name()
-  }
-  // fmt.Println(nums)
-
-  out, err := os.Create("solve.go")
-  if err != nil { panic(err) }
-
-  problems := nums
-  tmpl, err := template.New("solve").Parse(
-`package main
+const format = `package main
 import (
   "fmt"
   "os"
@@ -60,8 +37,15 @@ func main() {
   } else {
     printIDs()
   }
-}`)
-  if err != nil { panic(err) }
-  err = tmpl.Execute(out, problems)
-  if err != nil { panic(err) }
+}`
+
+
+func main() {
+  dir,_ := os.Open("problems");
+  problems,_ := dir.Readdirnames(0)
+
+  out,_ := os.Create("solve.go")
+
+  tmpl := template.Must(template.New("solve").Parse(format))
+  tmpl.Execute(out, problems)
 }
