@@ -1,12 +1,8 @@
 package sudoku
 
 import (
-	"bufio"
 	. "fmt"
-	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 )
 
 const ID = 96
@@ -48,10 +44,6 @@ func (s intSet) String() string {
 	return Sprint(result)
 }
 
-type BoardState struct {
-	title string
-	cells [9][9]int
-}
 type Solver struct {
 	title string
 	cells [9][9]Cell
@@ -203,46 +195,4 @@ func solveBoard(in BoardState) BoardState {
 	}
 
 	return solver.ToBoard()
-}
-
-func readBoards() chan BoardState {
-	out := make(chan BoardState)
-	go func() {
-		defer close(out)
-
-		go_path := os.Getenv("GOPATH")
-		data_path := filepath.Join(go_path, "src", "github.com", "courajs", "go-euler", "problems", "96", "sudoku.txt")
-		f, err := os.Open(data_path)
-		if err != nil {
-			Println("Couldn't read data file!")
-			return
-		}
-
-		lines := bufio.NewScanner(f)
-		for lines.Scan() {
-			b := BoardState{title: lines.Text()}
-			for row := 0; row < 9; row++ {
-				lines.Scan()
-				line := lines.Text()
-				for col, char := range line {
-					b.cells[row][col] = int(char - '0')
-				}
-			}
-			out <- b
-		}
-	}()
-	return out
-}
-
-func (b BoardState) String() string {
-	var result strings.Builder
-	result.WriteString(b.title)
-	result.WriteRune('\n')
-	for _, row := range b.cells {
-		for _, char := range row {
-			result.WriteRune(rune(char + '0'))
-		}
-		result.WriteRune('\n')
-	}
-	return result.String()
 }
