@@ -7,6 +7,7 @@ import (
 const ID = 96
 const Title = "Sudoku"
 
+// main
 func Solve() {
 	puzzles := readBoards()
 
@@ -15,6 +16,7 @@ func Solve() {
 	}
 }
 
+// solving algorithm
 func solveBoard(in BoardState) BoardState {
 	solver := MakeSolver(&in)
 	// prune possibilities with all the info we have from already filled cells
@@ -44,10 +46,7 @@ func solveBoard(in BoardState) BoardState {
 	return solver.ToBoard()
 }
 
-type Solver struct {
-	title string
-	cells [9][9]Cell
-}
+// individual Cells
 type Cell struct {
 	row, col, value int
 	possibilities   intSet
@@ -62,6 +61,7 @@ func (c *Cell) String() string {
 	return Sprintf("(%d,%d:%d:%v)", c.row, c.col, c.value, c.possibilities)
 }
 
+// accessors for various neighbor sets of a cell
 func (c *Cell) Row() [9]*Cell {
 	result := [9]*Cell{}
 	for i := range result {
@@ -94,33 +94,40 @@ func (c *Cell) Square() (result [9]*Cell) {
 	return result
 }
 
-type posHandler func(row, col int, cell *Cell)
+// Overall Solver struct
+type Solver struct {
+	title string
+	cells [9][9]Cell
+}
 
-func (s *Solver) eachPos(f posHandler) {
+func (s *Solver) each(f func(*Cell)) {
 	for row := range s.cells {
 		for col := range s.cells[row] {
-			f(row, col, &s.cells[row][col])
+			f(&s.cells[row][col])
 		}
 	}
 }
 
-func (s *Solver) each(f func(*Cell)) {
-	s.eachPos(func(_, _ int, cell *Cell) {
-		f(cell)
-	})
-}
-
+// Cells of a board have a pointer back out to the board,
+// so that a cell can find its own neighbors
 func MakeSolver(board *BoardState) *Solver {
 	result := &Solver{title: board.title}
-	result.eachPos(func(row, col int, cell *Cell) {
-		cell.board = result
-		cell.row = row
-		cell.col = col
-		cell.value = board.cells[row][col]
-		if cell.value == 0 {
-			cell.possibilities = fullSet()
+	for row := 0; row < 9; row++ {
+		for col := 0; col < 9; col++ {
+			val := board.cells[row][col]
+			result.cells[row][col] = Cell{
+				row:   row,
+				col:   col,
+				value: val,
+				board: result,
+			}
+			if val == 0 {
+				result.cells[row][col].possibilities = fullSet()
+			} else {
+				result.cells[row][col].possibilities = emptySet()
+			}
 		}
-	})
+	}
 
 	return result
 }
@@ -128,8 +135,8 @@ func MakeSolver(board *BoardState) *Solver {
 func (s *Solver) ToBoard() BoardState {
 	result := BoardState{title: s.title}
 
-	s.eachPos(func(row, col int, cell *Cell) {
-		result.cells[row][col] = cell.value
+	s.each(func(cell *Cell) {
+		result.cells[cell.row][cell.col] = cell.value
 	})
 	return result
 }
