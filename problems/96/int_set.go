@@ -11,7 +11,16 @@ func (s *intSet) Delete(val int) {
 	delete(*s, val)
 }
 
-func (set *intSet) Keys() (result []int) {
+func (s *intSet) Has(val int) bool {
+	_, ok := (*s)[val]
+	return ok
+}
+
+func (s *intSet) Count() int {
+	return len(*s)
+}
+
+func (set *intSet) Values() (result []int) {
 	for k := range *set {
 		result = append(result, k)
 	}
