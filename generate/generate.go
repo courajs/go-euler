@@ -1,51 +1,52 @@
 package main
 
 import (
-  "text/template"
-  "os"
+	"os"
+	"text/template"
 )
 
 const format = `package main
+
 import (
-  "fmt"
-  "os"
+	"fmt"
+	"os"
 {{range .}}
-  p{{.}} "github.com/courajs/go-euler/problems/{{.}}"
-  {{- end}}
+	p{{.}} "github.com/courajs/go-euler/problems/{{.}}"
+	{{- end}}
 )
 
 var solvers = map[string]func(){
-  {{- range .}}
-  "{{.}}": p{{.}}.Solve,
-  {{- end}}
+	{{- range .}}
+	"{{.}}": p{{.}}.Solve,
+	{{- end}}
 }
 
 func printIDs() {
-  {{- range .}}
-  fmt.Printf("%d: %s\n", p{{.}}.ID, p{{.}}.Title)
-  {{- end}}
+	{{- range .}}
+	fmt.Printf("%d: %s\n", p{{.}}.ID, p{{.}}.Title)
+	{{- end}}
 }
 
 func main() {
-  if len(os.Args) > 1 {
-    arg := os.Args[1]
-    if f, ok := solvers[arg]; ok {
-      f()
-    } else {
-      printIDs()
-    }
-  } else {
-    printIDs()
-  }
-}`
-
+	if len(os.Args) > 1 {
+		arg := os.Args[1]
+		if f, ok := solvers[arg]; ok {
+			f()
+		} else {
+			printIDs()
+		}
+	} else {
+		printIDs()
+	}
+}
+`
 
 func main() {
-  dir,_ := os.Open("problems");
-  problems,_ := dir.Readdirnames(0)
+	dir, _ := os.Open("problems")
+	problems, _ := dir.Readdirnames(0)
 
-  out,_ := os.Create("solve.go")
+	out, _ := os.Create("solve.go")
 
-  tmpl := template.Must(template.New("solve").Parse(format))
-  tmpl.Execute(out, problems)
+	tmpl := template.Must(template.New("solve").Parse(format))
+	tmpl.Execute(out, problems)
 }

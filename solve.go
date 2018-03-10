@@ -1,28 +1,29 @@
 package main
-import (
-  "fmt"
-  "os"
 
-  p96 "github.com/courajs/go-euler/problems/96"
+import (
+	"fmt"
+	"os"
+
+	p96 "github.com/courajs/go-euler/problems/96"
 )
 
 var solvers = map[string]func(){
-  "96": p96.Solve,
+	"96": p96.Solve,
 }
 
 func printIDs() {
-  fmt.Printf("%d: %s\n", p96.ID, p96.Title)
+	fmt.Printf("%d: %s\n", p96.ID, p96.Title)
 }
 
 func main() {
-  if len(os.Args) > 1 {
-    arg := os.Args[1]
-    if f, ok := solvers[arg]; ok {
-      f()
-    } else {
-      printIDs()
-    }
-  } else {
-    printIDs()
-  }
+	if len(os.Args) > 1 {
+		arg := os.Args[1]
+		if f, ok := solvers[arg]; ok {
+			f()
+		} else {
+			printIDs()
+		}
+	} else {
+		printIDs()
+	}
 }
