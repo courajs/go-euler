@@ -2,46 +2,46 @@ package sudoku
 
 import (
 	. "fmt"
-	"sort"
 )
 
 const ID = 96
 const Title = "Sudoku"
 
 func Solve() {
-	unsolved := readBoards()
-	solved := solveBoards(unsolved)
-	for b := range solved {
-		Println(b)
+	puzzles := readBoards()
+
+	for b := range puzzles {
+		Println(solveBoard(b))
 	}
 }
 
-type intSet map[int]bool
+func solveBoard(in BoardState) BoardState {
+	solver := MakeSolver(&in)
+	// prune possibilities with all the info we have from already filled cells
+	solver.each((*Cell).pruneNeighborPossibilities)
 
-func (set *intSet) keys() (result []int) {
-	for k := range *set {
-		result = append(result, k)
+	progress := true
+	for progress {
+		progress = false
+		solver.each(func(cell *Cell) {
+			if len(cell.possibilities) == 1 {
+				progress = true
+				cell.value = cell.possibilities.Keys()[0]
+				cell.possibilities = emptySet()
+				cell.pruneNeighborPossibilities()
+			}
+		})
 	}
-	return
-}
 
-func emptySet() intSet {
-	return make(intSet)
-}
-func fullSet() intSet {
-	result := make(intSet)
-	for i := 1; i <= 9; i++ {
-		result[i] = true
+	if !solver.solved() {
+		Println("board too hard:")
+		for i := 0; i < 9; i++ {
+			Println(solver.cells[i][0].Row())
+		}
+		panic("ahh")
 	}
-	return result
-}
-func (s intSet) String() string {
-	result := make([]int, 0, len(s))
-	for k := range s {
-		result = append(result, k)
-	}
-	sort.Ints(result)
-	return Sprint(result)
+
+	return solver.ToBoard()
 }
 
 type Solver struct {
@@ -145,54 +145,14 @@ func (s *Solver) solved() bool {
 	return true
 }
 
-func solveBoards(in chan BoardState) chan BoardState {
-	out := make(chan BoardState, 50)
-	go func() {
-		defer close(out)
-		for b := range in {
-			out <- solveBoard(b)
-		}
-	}()
-	return out
-}
-
 func (cell *Cell) pruneNeighborPossibilities() {
 	for _, neighbor := range cell.Row() {
-		delete(neighbor.possibilities, cell.value)
+		neighbor.possibilities.Delete(cell.value)
 	}
 	for _, neighbor := range cell.Col() {
-		delete(neighbor.possibilities, cell.value)
+		neighbor.possibilities.Delete(cell.value)
 	}
 	for _, neighbor := range cell.Square() {
-		delete(neighbor.possibilities, cell.value)
+		neighbor.possibilities.Delete(cell.value)
 	}
-}
-
-func solveBoard(in BoardState) BoardState {
-	solver := MakeSolver(&in)
-	// prune possibilities with all the info we have from already filled cells
-	solver.each((*Cell).pruneNeighborPossibilities)
-
-	progress := true
-	for progress {
-		progress = false
-		solver.each(func(cell *Cell) {
-			if len(cell.possibilities) == 1 {
-				progress = true
-				cell.value = cell.possibilities.keys()[0]
-				cell.possibilities = emptySet()
-				cell.pruneNeighborPossibilities()
-			}
-		})
-	}
-
-	if !solver.solved() {
-		Println("board too hard:")
-		for i := 0; i < 9; i++ {
-			Println(solver.cells[i][0].Row())
-		}
-		panic("ahh")
-	}
-
-	return solver.ToBoard()
 }
