@@ -24,20 +24,23 @@ func solveBoard(in BoardState) BoardState {
 	solver := MakeSolver(&in)
 	// prune possibilities with all the info we have from already filled cells
 	solver.each(solver.pruneNeighborPossibilities)
-	Println("pruned", solver)
 
 	progress := true
 	for progress {
 		progress = false
+		// Commit any solved squares - ones where only one possibility remains
 		solver.each(func(cell *Cell) {
 			if cell.possibilities.Count() == 1 {
 				progress = true
 				cell.value = cell.possibilities.Values()[0]
-				Println(cell.value)
 				cell.possibilities = emptySet()
 				solver.pruneNeighborPossibilities(cell)
 			}
 		})
+		if !progress && !solver.solved() {
+			// Find any squares which are the last their row, column, or section
+			// which can hold some required number
+		}
 	}
 
 	if !solver.solved() {
@@ -72,7 +75,7 @@ type Solver struct {
 func (s *Solver) String() string {
 	b := strings.Builder{}
 	for i := 0; i < 9; i++ {
-		Fprintln(&b, s.Row(&s.cells[i][0]))
+		Fprintln(&b, s.Row(i))
 	}
 	return b.String()
 }
@@ -89,11 +92,18 @@ func (s *Solver) each(f func(*Cell)) {
 // initialize the possibility sets
 func MakeSolver(board *BoardState) *Solver {
 	result := &Solver{title: board.title}
+	c := Cell{}
 	for row := 0; row < 9; row++ {
 		for col := 0; col < 9; col++ {
-			result.cells[row][col] = Cell{
-				row, col, board.cells[row][col], fullSet(),
+			c.row = row
+			c.col = col
+			c.value = board.cells[row][col]
+			if c.value == 0 {
+				c.possibilities = fullSet()
+			} else {
+				c.possibilities = emptySet()
 			}
+			result.cells[row][col] = c
 		}
 	}
 
@@ -101,21 +111,21 @@ func MakeSolver(board *BoardState) *Solver {
 }
 
 // accessors for various neighbor sets of a cell
-func (s *Solver) Row(c *Cell) (result [9]*Cell) {
+func (s *Solver) Row(row int) (result [9]*Cell) {
 	for i := range result {
-		result[i] = &s.cells[c.row][i]
+		result[i] = &s.cells[row][i]
 	}
 	return result
 }
-func (s *Solver) Col(c *Cell) (result [9]*Cell) {
+func (s *Solver) Col(col int) (result [9]*Cell) {
 	for i := range result {
-		result[i] = &s.cells[i][c.col]
+		result[i] = &s.cells[i][col]
 	}
 	return result
 }
-func (s *Solver) Square(c *Cell) (result [9]*Cell) {
-	big_row := c.row / 3
-	big_col := c.col / 3
+func (s *Solver) Square(sectionNum int) (result [9]*Cell) {
+	big_row := sectionNum / 3
+	big_col := sectionNum % 3
 	low_row := big_row * 3
 	low_col := big_col * 3
 	high_row := low_row + 3
@@ -155,13 +165,14 @@ func (s *Solver) pruneNeighborPossibilities(c *Cell) {
 	if c.value == 0 {
 		return
 	}
-	for _, neighbor := range s.Row(c) {
+	for _, neighbor := range s.Row(c.row) {
 		neighbor.possibilities.Delete(c.value)
 	}
-	for _, neighbor := range s.Col(c) {
+	for _, neighbor := range s.Col(c.col) {
 		neighbor.possibilities.Delete(c.value)
 	}
-	for _, neighbor := range s.Square(c) {
+	section := c.row/3*3 + c.col/3
+	for _, neighbor := range s.Square(section) {
 		neighbor.possibilities.Delete(c.value)
 	}
 }
