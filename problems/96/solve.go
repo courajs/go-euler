@@ -74,7 +74,7 @@ type Solver struct {
 
 func (s *Solver) String() string {
 	b := strings.Builder{}
-	for i := 0; i < 9; i++ {
+	for i := range nine {
 		Fprintln(&b, s.Row(i))
 	}
 	return b.String()
@@ -93,8 +93,8 @@ func (s *Solver) each(f func(*Cell)) {
 func MakeSolver(board *BoardState) *Solver {
 	result := &Solver{title: board.title}
 	c := Cell{}
-	for row := 0; row < 9; row++ {
-		for col := 0; col < 9; col++ {
+	for row := range nine {
+		for col := range nine {
 			c.row = row
 			c.col = col
 			c.value = board.cells[row][col]
@@ -151,8 +151,8 @@ func (s *Solver) ToBoard() BoardState {
 }
 
 func (s *Solver) solved() bool {
-	for i := 0; i < 9; i++ {
-		for j := 0; j < 9; j++ {
+	for i := range nine {
+		for j := range nine {
 			if !s.cells[i][j].solved() {
 				return false
 			}
@@ -176,3 +176,11 @@ func (s *Solver) pruneNeighborPossibilities(c *Cell) {
 		neighbor.possibilities.Delete(c.value)
 	}
 }
+
+type None struct{}
+
+func seq(n int) []None {
+	return make([]None, n)
+}
+
+var nine []None = seq(9)
