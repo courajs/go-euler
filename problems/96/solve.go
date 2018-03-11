@@ -110,20 +110,22 @@ func MakeSolver(board *BoardState) *Solver {
 	return result
 }
 
+type Segment = [9]*Cell
+
 // accessors for various neighbor sets of a cell
-func (s *Solver) Row(row int) (result [9]*Cell) {
+func (s *Solver) Row(row int) (result Segment) {
 	for i := range result {
 		result[i] = &s.cells[row][i]
 	}
 	return result
 }
-func (s *Solver) Col(col int) (result [9]*Cell) {
+func (s *Solver) Col(col int) (result Segment) {
 	for i := range result {
 		result[i] = &s.cells[i][col]
 	}
 	return result
 }
-func (s *Solver) Square(sectionNum int) (result [9]*Cell) {
+func (s *Solver) Square(sectionNum int) (result Segment) {
 	big_row := sectionNum / 3
 	big_col := sectionNum % 3
 	low_row := big_row * 3
@@ -139,6 +141,14 @@ func (s *Solver) Square(sectionNum int) (result [9]*Cell) {
 		}
 	}
 	return result
+}
+
+func (s *Solver) eachSegment(f func(Segment)) {
+	for i := range nine {
+		f(s.Row(i))
+		f(s.Col(i))
+		f(s.Square(i))
+	}
 }
 
 func (s *Solver) ToBoard() BoardState {
