@@ -32,20 +32,44 @@ func solveBoard(in BoardState) BoardState {
 		solver.each(func(cell *Cell) {
 			if cell.possibilities.Count() == 1 {
 				progress = true
-				cell.value = cell.possibilities.Values()[0]
-				cell.possibilities = emptySet()
+				cell.fill(cell.possibilities.Values()[0])
 				solver.pruneNeighborPossibilities(cell)
 			}
 		})
-		if !progress && !solver.solved() {
-			// Find any squares which are the last their row, column, or section
-			// which can hold some required number
+		if progress {
+			continue
 		}
+		if solver.solved() {
+			break
+		}
+
+		// Find any squares which are the last their row, column, or section
+		// which can hold some required number
+		solver.eachSegment(func(seg Segment) {
+			possibles := make(map[int][]*Cell, 9)
+			for i := range nine {
+				possibles[i+1] = make([]*Cell, 0, 9)
+			}
+			for _, cell := range seg {
+				for _, possibility := range cell.possibilities.Values() {
+					possibles[possibility] = append(possibles[possibility], cell)
+				}
+			}
+			for val, possibleHolders := range possibles {
+				if len(possibleHolders) == 1 {
+					progress = true
+					toFill := possibleHolders[0]
+					toFill.fill(val)
+					solver.pruneNeighborPossibilities(toFill)
+				}
+			}
+		})
 	}
 
 	if !solver.solved() {
 		Println("board too hard:")
 		Println(solver)
+		Println(solver.ToBoard())
 		panic("ahh")
 	}
 
@@ -56,6 +80,11 @@ func solveBoard(in BoardState) BoardState {
 type Cell struct {
 	row, col, value int
 	possibilities   intSet
+}
+
+func (c *Cell) fill(val int) {
+	c.value = val
+	c.possibilities = emptySet()
 }
 
 func (c *Cell) solved() bool {
